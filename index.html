@@ -168,11 +168,13 @@
     var db = firebase.firestore();
 
     // Initialize map
-    var map = L.map('map').setView([40.7128, -74.0060], 12); // New York as example
+    // Initialize map
+    var map = L.map('map').setView([43.3095, -3.0100], 13); // Portugalete as example
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
 
     var markerLayer = L.layerGroup().addTo(map);
 
