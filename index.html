@@ -122,6 +122,16 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
   </style>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N9F601LY6L"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-N9F601LY6L');
+  </script>
 </head>
 <body>
   <div class="title">Make Your Way</div>
@@ -168,13 +178,11 @@
     var db = firebase.firestore();
 
     // Initialize map
-    // Initialize map
     var map = L.map('map').setView([43.3095, -3.0100], 13); // Portugalete as example
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-
 
     var markerLayer = L.layerGroup().addTo(map);
 
@@ -225,7 +233,6 @@
           warningMessage.style.display = 'none';
           localStorage.setItem('hasSeenWarning', 'true');
           welcomeMessage.style.display = 'block';
-          welcomeMessage.style.animation = 'showMessage 0.5s forwards';
         }, 500);
       } else if (welcomeMessage.style.display === 'block') {
         welcomeMessage.style.animation = 'hideMessage 0.5s forwards';
