@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detalle de la Ubicación</title>
+  <title>Location Details</title>
   <style>
     body {
+      margin: 0;
+      padding: 0;
       background-color: #1e1e1e;
       color: #f0f0f0;
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', sans-serif;
+      background: repeating-linear-gradient(45deg, #1e1e1e, #1e1e1e 10px, #2b2b2b 10px, #2b2b2b 20px);
     }
     .container {
       max-width: 800px;
@@ -18,63 +21,86 @@
       border-radius: 10px;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
-    h1, h2 {
+    h1 {
+      text-align: center;
       color: #4CAF50;
     }
-    .location-details, .comments-section {
-      margin-bottom: 20px;
+    .location-image {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
-    .comment {
+    .comment-form {
+      margin-top: 20px;
+      padding: 20px;
       background-color: #333;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    .comment-form label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .comment-form textarea {
+      width: 100%;
+      margin-top: 5px;
       padding: 10px;
       border-radius: 5px;
-      margin-bottom: 10px;
+      border: 1px solid #4CAF50;
+      background-color: #444;
+      color: #f0f0f0;
     }
-    .comment img {
-      max-width: 100%;
-      height: auto;
+    .comment-form button {
       margin-top: 10px;
-      display: none;
-    }
-    .comment button {
+      padding: 10px;
       background-color: #4CAF50;
       color: white;
-      padding: 5px;
       border: none;
-      cursor: pointer;
       border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
       transition: background-color 0.3s ease;
     }
-    .comment button:hover {
+    .comment-form button:hover {
       background-color: #45a049;
+    }
+    .comments {
+      margin-top: 20px;
+    }
+    .comment {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #333;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="location-details">
-      <h1 id="locationName"></h1>
-      <p id="locationDescription"></p>
-      <img id="locationImage" style="max-width: 100%; height: auto; border-radius: 10px; margin-top: 20px;">
+    <h1>Location Details</h1>
+    <img id="locationImage" class="location-image" src="" alt="Location Image">
+    <h2 id="locationName"></h2>
+    <p id="locationDescription"></p>
+
+    <div class="comment-form">
+      <h3>Add a Comment</h3>
+      <label for="commentText">Comment:</label>
+      <textarea id="commentText" rows="4"></textarea>
+      <button id="submitComment">Submit</button>
     </div>
-    <div class="comments-section">
-      <h2>Comentarios</h2>
-      <div id="comments"></div>
-      <form id="commentForm">
-        <label for="commentText">Añadir un comentario:</label>
-        <textarea id="commentText" rows="4" style="width: 100%; margin-bottom: 10px;"></textarea>
-        <label for="commentImage">Subir imagen:</label>
-        <input type="file" id="commentImage" accept="image/*" style="display: block; margin-bottom: 10px;">
-        <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 5px; transition: background-color 0.3s ease; width: 100%; font-size: 16px;">Enviar</button>
-      </form>
+
+    <div class="comments" id="commentsSection">
+      <!-- Comments will be loaded here -->
     </div>
   </div>
-  
+
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
   <script>
-    // Configuración de Firebase
+    // Firebase configuration
     var firebaseConfig = {
       apiKey: "AIzaSyB8J9B2u29MLTAbYdwPc-WGV2pDHHn-RzA",
       authDomain: "makeyourway1-14c03.firebaseapp.com",
@@ -85,90 +111,73 @@
       measurementId: "G-00PJNJ1400"
     };
 
-    // Inicializar Firebase
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
-    var storage = firebase.storage();
 
-    // Obtener los parámetros de la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const locationName = urlParams.get('name');
-    const locationDescription = urlParams.get('description');
-    const locationImageURL = urlParams.get('image');
+    function getQueryParam(param) {
+      var urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
 
-    // Mostrar los detalles de la ubicación
-    document.getElementById('locationName').textContent = locationName;
-    document.getElementById('locationDescription').textContent = locationDescription;
-    document.getElementById('locationImage').src = decodeURIComponent(locationImageURL);
+    var name = decodeURIComponent(getQueryParam('name'));
+    var description = decodeURIComponent(getQueryParam('description'));
+    var imageUrl = decodeURIComponent(getQueryParam('image'));
 
-    // Cargar comentarios
-    function loadComments() {
-      db.collection('comments').where('location', '==', locationName).get().then((querySnapshot) => {
-        const commentsDiv = document.getElementById('comments');
-        commentsDiv.innerHTML = ''; // Limpiar comentarios existentes
+    document.getElementById('locationName').textContent = name;
+    document.getElementById('locationDescription').textContent = description;
+    document.getElementById('locationImage').src = imageUrl;
+
+    // Submit comment
+    document.getElementById('submitComment').addEventListener('click', function() {
+      var commentText = document.getElementById('commentText').value;
+      if (commentText.trim() === '') {
+        alert('Please enter a comment.');
+        return;
+      }
+
+      db.collection('locations').where('name', '==', name).get().then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
-          const commentData = doc.data();
-          const commentDiv = document.createElement('div');
-          commentDiv.className = 'comment';
-          commentDiv.innerHTML = `<p>${commentData.text}</p>`;
-          if (commentData.imageURL) {
-            const img = document.createElement('img');
-            img.src = commentData.imageURL;
-            commentDiv.appendChild(img);
-            const viewButton = document.createElement('button');
-            viewButton.textContent = 'Ver foto';
-            viewButton.addEventListener('click', () => {
-              img.style.display = img.style.display === 'none' ? 'block' : 'none';
-            });
-            commentDiv.appendChild(viewButton);
-          }
-          commentsDiv.appendChild(commentDiv);
+          var locationId = doc.id;
+          db.collection('locations').doc(locationId).collection('comments').add({
+            text: commentText,
+            timestamp: new Date()
+          }).then(() => {
+            document.getElementById('commentText').value = '';
+            loadComments();
+          }).catch((error) => {
+            console.error('Error adding comment: ', error);
+          });
         });
       }).catch((error) => {
-        console.error('Error loading comments: ', error);
+        console.error('Error fetching location: ', error);
+      });
+    });
+
+    function loadComments() {
+      db.collection('locations').where('name', '==', name).get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          var locationId = doc.id;
+          db.collection('locations').doc(locationId).collection('comments').orderBy('timestamp', 'desc').get().then((commentsSnapshot) => {
+            var commentsSection = document.getElementById('commentsSection');
+            commentsSection.innerHTML = '';
+            commentsSnapshot.forEach((commentDoc) => {
+              var comment = commentDoc.data();
+              var commentElement = document.createElement('div');
+              commentElement.className = 'comment';
+              commentElement.textContent = comment.text;
+              commentsSection.appendChild(commentElement);
+            });
+          }).catch((error) => {
+            console.error('Error loading comments: ', error);
+          });
+        });
+      }).catch((error) => {
+        console.error('Error fetching location: ', error);
       });
     }
 
     loadComments();
-
-    // Enviar nuevo comentario
-    document.getElementById('commentForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const commentText = document.getElementById('commentText').value;
-      const commentImage = document.getElementById('commentImage').files[0];
-
-      if (!commentText) return alert('El comentario no puede estar vacío.');
-
-      if (commentImage) {
-        const storageRef = storage.ref(`comments/${commentImage.name}`);
-        storageRef.put(commentImage).then((snapshot) => {
-          return snapshot.ref.getDownloadURL();
-        }).then((downloadURL) => {
-          return db.collection('comments').add({
-            location: locationName,
-            text: commentText,
-            imageURL: downloadURL,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }).then(() => {
-          loadComments();
-          document.getElementById('commentForm').reset();
-        }).catch((error) => {
-          console.error('Error adding comment with image: ', error);
-        });
-      } else {
-        db.collection('comments').add({
-          location: locationName,
-          text: commentText,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-          loadComments();
-          document.getElementById('commentForm').reset();
-        }).catch((error) => {
-          console.error('Error adding comment: ', error);
-        });
-      }
-    });
   </script>
 </body>
 </html>
