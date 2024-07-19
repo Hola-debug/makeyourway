@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Añadir Ubicación</title>
+  <title>Add Location</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" />
   <style>
     body {
       margin: 0;
@@ -13,6 +12,7 @@
       background-color: #1e1e1e;
       color: #f0f0f0;
       font-family: 'Arial', sans-serif;
+      background: repeating-linear-gradient(45deg, #1e1e1e, #1e1e1e 10px, #2b2b2b 10px, #2b2b2b 20px);
     }
     .container {
       max-width: 800px;
@@ -26,34 +26,37 @@
       text-align: center;
       color: #4CAF50;
     }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
     label {
-      display: block;
-      margin-bottom: 5px;
-      color: #fff;
+      margin-top: 10px;
+      font-weight: bold;
     }
-    input[type="text"], textarea {
-      width: 100%;
-      margin-bottom: 10px;
+    input, textarea {
+      margin-top: 5px;
       padding: 10px;
-      font-size: 14px;
-      color: #333;
-      background-color: #fff;
-      border: none;
       border-radius: 5px;
+      border: 1px solid #4CAF50;
+      background-color: #333;
+      color: #f0f0f0;
     }
-    textarea {
-      resize: vertical;
+    input[type="file"] {
+      border: none;
+      background: none;
+      padding: 0;
     }
     button {
+      margin-top: 20px;
+      padding: 10px;
       background-color: #4CAF50;
       color: white;
-      padding: 10px;
       border: none;
-      cursor: pointer;
       border-radius: 5px;
-      transition: background-color 0.3s ease;
-      width: 100%;
+      cursor: pointer;
       font-size: 16px;
+      transition: background-color 0.3s ease;
     }
     button:hover {
       background-color: #45a049;
@@ -63,44 +66,36 @@
       width: 100%;
       margin-top: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    }
-    .dropzone {
-      background: #2c2c2c;
-      border: 2px dashed #4CAF50;
-      padding: 20px;
-      border-radius: 5px;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Añadir Ubicación</h1>
+    <h1>Add New Location</h1>
     <form id="locationForm">
-      <label for="locationName">Nombre de la ubicación:</label>
+      <label for="locationName">Location Name:</label>
       <input type="text" id="locationName" name="locationName" required>
-
-      <label for="locationDescription">Descripción:</label>
+      
+      <label for="locationDescription">Description:</label>
       <textarea id="locationDescription" name="locationDescription" rows="4" required></textarea>
-
-      <label for="photoDropzone">Subir una foto:</label>
-      <div id="photoDropzone" class="dropzone"></div>
-
-      <label>Selecciona la ubicación en el mapa:</label>
+      
+      <label for="photoDropzone">Upload a photo:</label>
+      <input type="file" id="photoDropzone" name="photoDropzone">
+      
+      <label>Select the location on the map:</label>
       <div id="map"></div>
-
-      <button type="submit">Guardar Ubicación</button>
+      
+      <button type="submit">Save Location</button>
     </form>
   </div>
-
+  
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
   <script>
-    // Configuración de Firebase
+    // Firebase configuration
     var firebaseConfig = {
       apiKey: "AIzaSyB8J9B2u29MLTAbYdwPc-WGV2pDHHn-RzA",
       authDomain: "makeyourway1-14c03.firebaseapp.com",
@@ -111,66 +106,53 @@
       measurementId: "G-00PJNJ1400"
     };
 
-    // Inicializar Firebase
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
     var storage = firebase.storage();
 
-    // Inicializar mapa
-    var map = L.map('map').setView([40.7128, -74.0060], 12); // Nueva York como ejemplo
+    var map = L.map('map').setView([40.7128, -74.0060], 12); // Default to New York
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    var selectedLatLng = null;
     var marker;
 
     map.on('click', function(e) {
-      selectedLatLng = e.latlng;
       if (marker) {
-        marker.setLatLng(selectedLatLng);
+        marker.setLatLng(e.latlng);
       } else {
-        marker = L.marker(selectedLatLng).addTo(map);
+        marker = L.marker(e.latlng).addTo(map);
       }
     });
 
-    // Configuración de Dropzone para subir fotos
-    Dropzone.autoDiscover = false;
-    var photoDropzone = new Dropzone("#photoDropzone", {
-      url: "/file/post", // URL dummy para evitar errores en Dropzone
-      maxFiles: 1,
-      addRemoveLinks: true,
-      autoProcessQueue: false
-    });
+    document.getElementById('locationForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      var name = document.getElementById('locationName').value;
+      var description = document.getElementById('locationDescription').value;
+      var latLng = marker.getLatLng();
 
-    document.getElementById('locationForm').addEventListener('submit', function(e) {
-      e.preventDefault();
+      var photoFile = document.getElementById('photoDropzone').files[0];
+      var imageUrl = '';
 
-      if (!selectedLatLng) {
-        alert('Por favor, seleccione una ubicación en el mapa.');
-        return;
-      }
+      if (photoFile) {
+        var storageRef = storage.ref('images/' + photoFile.name);
+        var uploadTask = storageRef.put(photoFile);
 
-      var name = document.getElementById('locationName').value.trim();
-      var description = document.getElementById('locationDescription').value.trim();
-
-      if (name === '' || description === '') {
-        alert('Por favor, complete todos los campos.');
-        return;
-      }
-
-      // Subir la imagen a Firebase Storage
-      if (photoDropzone.files.length > 0) {
-        var file = photoDropzone.files[0];
-        var storageRef = storage.ref('images/' + file.name);
-        storageRef.put(file).then(function(snapshot) {
-          snapshot.ref.getDownloadURL().then(function(downloadURL) {
-            saveLocation(name, description, selectedLatLng, downloadURL);
+        uploadTask.on('state_changed', function(snapshot) {
+          // Handle progress, if needed
+        }, function(error) {
+          console.error('Upload failed:', error);
+        }, function() {
+          uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+            imageUrl = downloadURL;
+            saveLocation(name, description, latLng, imageUrl);
           });
         });
       } else {
-        saveLocation(name, description, selectedLatLng, null);
+        saveLocation(name, description, latLng, imageUrl);
       }
     });
 
