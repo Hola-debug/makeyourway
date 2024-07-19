@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Location Details</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     body {
       margin: 0;
@@ -30,6 +31,12 @@
       height: auto;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
     }
     .comment-form {
       margin-top: 20px;
@@ -82,6 +89,8 @@
     <h1>Location Details</h1>
     <h2 id="locationName"></h2>
     <p id="locationDescription"></p>
+    <img id="locationImage" class="location-image" src="" alt="Location Image">
+    <div id="map"></div>
 
     <div class="comment-form">
       <h3>Add a Comment</h3>
@@ -95,6 +104,7 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
@@ -121,11 +131,32 @@
 
     var name = decodeURIComponent(getQueryParam('name'));
     var description = decodeURIComponent(getQueryParam('description'));
+    var imageURL = decodeURIComponent(getQueryParam('image'));
 
     document.getElementById('locationName').textContent = name;
     document.getElementById('locationDescription').textContent = description;
+    if (imageURL) {
+      document.getElementById('locationImage').src = imageURL;
+    } else {
+      document.getElementById('locationImage').style.display = 'none';
+    }
 
-    // Submit comment
+    var map = L.map('map').setView([40.7128, -74.0060], 12); // Default to New York
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    db.collection('locations').where('name', '==', name).get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        var location = doc.data();
+        var marker = L.marker([location.lat, location.lng]).addTo(map)
+          .bindPopup(`<b>${location.name}</b><br>${location.description}`);
+        map.setView([location.lat, location.lng], 12);
+      });
+    }).catch((error) => {
+      console.error('Error fetching location: ', error);
+    });
+
     document.getElementById('submitComment').addEventListener('click', function() {
       var commentText = document.getElementById('commentText').value;
       if (commentText.trim() === '') {
