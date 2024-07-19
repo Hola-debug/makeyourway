@@ -22,6 +22,7 @@
       background-color: #2c2c2c;
       border-radius: 10px;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      position: relative;
     }
     .title {
       text-align: center;
@@ -37,8 +38,8 @@
       to { opacity: 1; }
     }
     #map-container {
+      position: relative;
       padding: 20px;
-      margin: 0 auto;
     }
     #map {
       height: calc(100vh - 200px);
@@ -51,10 +52,10 @@
     #map:hover {
       transform: scale(1.02);
     }
-    .add-marker-button {
+    .add-marker-button,
+    .find-nearby-button {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 10px; /* Adjusted to be a bit higher */
       background-color: #4CAF50;
       color: white;
       padding: 10px 20px;
@@ -65,6 +66,17 @@
       transition: background-color 0.3s ease;
       text-decoration: none;
       display: inline-block;
+      z-index: 1000;
+    }
+    .find-nearby-button {
+      left: 20px;
+      background-color: #FF5722;
+    }
+    .add-marker-button {
+      right: 20px;
+    }
+    .find-nearby-button:hover {
+      background-color: #E64A19;
     }
     .add-marker-button:hover {
       background-color: #45a049;
@@ -81,7 +93,7 @@
       z-index: 1000;
       opacity: 0;
       animation: showMessage 0.5s forwards;
-      display: none; /* Hidden by default */
+      display: none;
     }
     .warning-message {
       background-color: red;
@@ -121,22 +133,61 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
+    .notification {
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 600px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      background-color: #000;
+      color: #fff;
+      display: none;
+      z-index: 1000;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+    .notification ul {
+      list-style: none;
+      padding: 0;
+    }
+    .notification ul li {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #333;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .notification ul li:hover {
+      background-color: #444;
+    }
+    .notification-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #FF5722;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .notification-button:hover {
+      background-color: #E64A19;
+    }
   </style>
-  
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N9F601LY6L"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-N9F601LY6L');
-  </script>
 </head>
 <body>
   <div class="title">Make Your Way</div>
-  <a href="formulario.html" class="add-marker-button"><i class="fas fa-map-marker-alt"></i> Add Location</a>
   <div class="container">
+    <button class="find-nearby-button" id="findNearbyButton">Find Nearby Places</button>
+    <a href="formulario.html" class="add-marker-button"><i class="fas fa-map-marker-alt"></i> Add Location</a>
     <div id="map-container">
       <div id="map"></div>
     </div>
@@ -144,7 +195,13 @@
       Welcome to Make Your Way. This is a website to upload abandoned places that you know, helping grow the urban explorer community. Please, do not upload places that are not abandoned. And always remember to respect safety and legality.
     </div>
   </div>
-  
+
+  <div class="notification" id="notification">
+    <button class="notification-button" id="closeNotification">Close</button>
+    <h2>Nearby Places</h2>
+    <ul id="nearbyPlacesList"></ul>
+  </div>
+
   <div class="message warning-message" id="warningMessage">
     <p>This site is under development. Some features are not yet finished:</p>
     <ul>
@@ -160,7 +217,6 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
   <script>
     // Firebase configuration
     var firebaseConfig = {
@@ -172,18 +228,14 @@
       appId: "1:853227723290:web:862ffdc50d316fc6504fa3",
       measurementId: "G-00PJNJ1400"
     };
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
 
     // Initialize map
     var map = L.map('map').setView([43.3095, -3.0100], 13); // Portugalete as example
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-
     var markerLayer = L.layerGroup().addTo(map);
 
     // Load and display markers from Firestore
@@ -210,7 +262,6 @@
         console.error('Error loading markers: ', error);
       });
     }
-
     loadMarkers();
 
     // Display messages based on localStorage
@@ -241,6 +292,67 @@
           localStorage.setItem('hasSeenWelcome', 'true');
         }, 500);
       }
+    });
+
+    // Find nearby places functionality
+    document.getElementById('findNearbyButton').addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          var userLat = position.coords.latitude;
+          var userLng = position.coords.longitude;
+
+          db.collection('locations').get().then((querySnapshot) => {
+            var nearbyPlaces = [];
+            querySnapshot.forEach((doc) => {
+              var marker = doc.data();
+              var distance = getDistanceFromLatLonInKm(userLat, userLng, marker.lat, marker.lng);
+              if (distance <= 5) { // 5 km radius
+                nearbyPlaces.push({
+                  name: marker.name,
+                  distance: distance.toFixed(2) // Round to 2 decimal places
+                });
+              }
+            });
+
+            showNotification(nearbyPlaces);
+          }).catch((error) => {
+            console.error('Error finding nearby places: ', error);
+          });
+        });
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    });
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      function toRad(x) { return x * Math.PI / 180; }
+      var R = 6371; // Radius of the earth in km
+      var dLat = toRad(lat2 - lat1);
+      var dLon = toRad(lon2 - lon1);
+      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      var d = R * c; // Distance in km
+      return d;
+    }
+
+    function showNotification(places) {
+      var notification = document.getElementById('notification');
+      var nearbyPlacesList = document.getElementById('nearbyPlacesList');
+
+      nearbyPlacesList.innerHTML = '';
+      places.forEach(function(place) {
+        var listItem = document.createElement('li');
+        listItem.textContent = `${place.name} (${place.distance} km away)`;
+        nearbyPlacesList.appendChild(listItem);
+      });
+
+      notification.style.display = 'block';
+    }
+
+    document.getElementById('closeNotification').addEventListener('click', function() {
+      document.getElementById('notification').style.display = 'none';
     });
   </script>
 </body>
