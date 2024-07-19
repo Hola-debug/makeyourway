@@ -62,6 +62,13 @@
       margin-top: 20px;
       border-radius: 10px;
     }
+    #imagePreview {
+      margin-top: 10px;
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -77,6 +84,10 @@
       <label>Select the location on the map:</label>
       <div id="map"></div>
       
+      <label for="locationImage">Upload Image:</label>
+      <input type="file" id="locationImage" name="locationImage" accept="image/*">
+      <img id="imagePreview" src="" alt="Image preview">
+
       <button type="submit">Save Location</button>
     </form>
   </div>
@@ -84,7 +95,7 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
   <script>
     // Firebase configuration
     var firebaseConfig = {
@@ -100,6 +111,7 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
+    var storage = firebase.storage();
 
     var map = L.map('map').setView([40.7128, -74.0060], 12); // Default to New York
 
@@ -123,22 +135,50 @@
       var name = document.getElementById('locationName').value;
       var description = document.getElementById('locationDescription').value;
       var latLng = marker.getLatLng();
+      var imageFile = document.getElementById('locationImage').files[0];
+      
+      var imageUrl = '';
 
-      saveLocation(name, description, latLng);
+      if (imageFile) {
+        var storageRef = storage.ref('images/' + imageFile.name);
+        storageRef.put(imageFile).then(function(snapshot) {
+          return snapshot.ref.getDownloadURL();
+        }).then(function(downloadURL) {
+          imageUrl = downloadURL;
+          saveLocation(name, description, latLng, imageUrl);
+        }).catch(function(error) {
+          console.error('Error uploading image: ', error);
+          saveLocation(name, description, latLng, imageUrl); // Save even if image upload fails
+        });
+      } else {
+        saveLocation(name, description, latLng, imageUrl);
+      }
     });
 
-    function saveLocation(name, description, latLng) {
+    function saveLocation(name, description, latLng, imageUrl) {
       db.collection('locations').add({
         name: name,
         description: description,
         lat: latLng.lat,
-        lng: latLng.lng
+        lng: latLng.lng,
+        imageURL: imageUrl
       }).then(() => {
         window.location.href = 'index.html';
       }).catch((error) => {
         console.error('Error adding document: ', error);
       });
     }
+
+    document.getElementById('locationImage').addEventListener('change', function(event) {
+      var file = event.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('imagePreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
   </script>
 </body>
 </html>
