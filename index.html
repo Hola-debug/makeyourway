@@ -69,6 +69,19 @@
     .add-marker-button:hover {
       background-color: #45a049;
     }
+    .warning-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: red;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -80,6 +93,14 @@
     </div>
   </div>
   
+  <div class="warning-message" id="warningMessage">
+    <p>This site is under development. Some features are not yet finished:</p>
+    <ul>
+      <li>Comments</li>
+      <li>Photos</li>
+    </ul>
+  </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
@@ -135,6 +156,14 @@
     }
 
     loadMarkers();
+
+    // Ocultar mensaje de advertencia al hacer clic
+    document.body.addEventListener('click', function() {
+      var warningMessage = document.getElementById('warningMessage');
+      if (warningMessage) {
+        warningMessage.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
