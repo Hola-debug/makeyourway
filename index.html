@@ -225,14 +225,13 @@
       projectId: "makeyourway1-14c03",
       storageBucket: "makeyourway1-14c03.appspot.com",
       messagingSenderId: "853227723290",
-      appId: "1:853227723290:web:862ffdc50d316fc6504fa3",
-      measurementId: "G-00PJNJ1400"
+      appId: "1:853227723290:web:862ffdc50a6cf36d833cb7"
     };
     firebase.initializeApp(firebaseConfig);
     var db = firebase.firestore();
 
-    // Initialize map
-    var map = L.map('map').setView([43.3095, -3.0100], 13); // Portugalete as example
+    // Initialize the map
+    var map = L.map('map').setView([51.505, -0.09], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
@@ -294,12 +293,52 @@
       }
     });
 
+    // Get user IP address
+    function getUserIP() {
+      return fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => data.ip)
+        .catch(error => {
+          console.error('Error fetching IP address:', error);
+          return null;
+        });
+    }
+
+    // Check if IP exists and save location functionality
+    async function checkAndSaveLocation(userLat, userLng, userIP) {
+      const querySnapshot = await db.collection('user_locations').where('ip', '==', userIP).get();
+      
+      if (querySnapshot.empty) {
+        // Save location and IP if not already present
+        db.collection('user_locations').add({
+          ip: userIP,
+          cord: {
+            lat: userLat,
+            lng: userLng
+          },
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          console.log('Location and IP saved successfully');
+        }).catch((error) => {
+          console.error('Error saving location and IP:', error);
+        });
+      } else {
+        console.log('Location for this IP already exists');
+      }
+    }
+
     // Find nearby places functionality
-    document.getElementById('findNearbyButton').addEventListener('click', function() {
+    document.getElementById('findNearbyButton').addEventListener('click', async function() {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
+        navigator.geolocation.getCurrentPosition(async function(position) {
           var userLat = position.coords.latitude;
           var userLng = position.coords.longitude;
+
+          // Get user IP address
+          var userIP = await getUserIP();
+
+          // Check and save location and IP in Firestore
+          await checkAndSaveLocation(userLat, userLng, userIP);
 
           db.collection('locations').get().then((querySnapshot) => {
             var nearbyPlaces = [];
