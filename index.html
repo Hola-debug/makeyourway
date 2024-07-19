@@ -41,7 +41,7 @@
       margin: 0 auto;
     }
     #map {
-      height: calc(100vh - 140px);
+      height: calc(100vh - 200px);
       width: 100%;
       margin-top: 20px;
       border-radius: 10px;
@@ -69,18 +69,57 @@
     .add-marker-button:hover {
       background-color: #45a049;
     }
-    .warning-message {
+    .message {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: red;
-      color: white;
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
       text-align: center;
       z-index: 1000;
+      opacity: 0;
+      animation: showMessage 0.5s forwards;
+      display: none; /* Oculto por defecto */
+    }
+    .warning-message {
+      background-color: red;
+      color: white;
+    }
+    .welcome-message {
+      background-color: black;
+      color: white;
+      width: 80%;
+      max-width: 600px;
+    }
+    @keyframes showMessage {
+      from {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+    @keyframes hideMessage {
+      from {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      to {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+      }
+    }
+    .info-message {
+      text-align: center;
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #333;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
   </style>
 </head>
@@ -91,14 +130,21 @@
     <div id="map-container">
       <div id="map"></div>
     </div>
+    <div class="info-message">
+      Welcome to Make Your Way. This is a website to upload abandoned places you know, helping grow the urban explorer community. Please, do not upload places that are not abandoned. And always remember to respect safety and legality.
+    </div>
   </div>
   
-  <div class="warning-message" id="warningMessage">
+  <div class="message warning-message" id="warningMessage">
     <p>This site is under development. Some features are not yet finished:</p>
     <ul>
       <li>Comments</li>
       <li>Photos</li>
     </ul>
+  </div>
+  
+  <div class="message welcome-message" id="welcomeMessage">
+    <p>Welcome to Make Your Way. This is a website to upload abandoned places you know, helping grow the urban explorer community. Please, do not upload places that are not abandoned. And always remember to respect safety and legality.</p>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -157,11 +203,34 @@
 
     loadMarkers();
 
-    // Ocultar mensaje de advertencia al hacer clic
+    // Mostrar mensajes basados en localStorage
+    var warningMessage = document.getElementById('warningMessage');
+    var welcomeMessage = document.getElementById('welcomeMessage');
+    var hasSeenWarning = localStorage.getItem('hasSeenWarning');
+    var hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+
+    if (!hasSeenWarning) {
+      warningMessage.style.display = 'block';
+    } else if (!hasSeenWelcome) {
+      welcomeMessage.style.display = 'block';
+    }
+
+    // Ocultar mensajes al hacer clic
     document.body.addEventListener('click', function() {
-      var warningMessage = document.getElementById('warningMessage');
-      if (warningMessage) {
-        warningMessage.style.display = 'none';
+      if (warningMessage.style.display === 'block') {
+        warningMessage.style.animation = 'hideMessage 0.5s forwards';
+        setTimeout(function() {
+          warningMessage.style.display = 'none';
+          localStorage.setItem('hasSeenWarning', 'true');
+          welcomeMessage.style.display = 'block';
+          welcomeMessage.style.animation = 'showMessage 0.5s forwards';
+        }, 500);
+      } else if (welcomeMessage.style.display === 'block') {
+        welcomeMessage.style.animation = 'hideMessage 0.5s forwards';
+        setTimeout(function() {
+          welcomeMessage.style.display = 'none';
+          localStorage.setItem('hasSeenWelcome', 'true');
+        }, 500);
       }
     });
   </script>
