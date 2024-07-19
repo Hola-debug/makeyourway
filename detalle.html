@@ -80,7 +80,6 @@
 <body>
   <div class="container">
     <h1>Location Details</h1>
-    <img id="locationImage" class="location-image" src="" alt="Location Image">
     <h2 id="locationName"></h2>
     <p id="locationDescription"></p>
 
@@ -122,11 +121,9 @@
 
     var name = decodeURIComponent(getQueryParam('name'));
     var description = decodeURIComponent(getQueryParam('description'));
-    var imageUrl = decodeURIComponent(getQueryParam('image'));
 
     document.getElementById('locationName').textContent = name;
     document.getElementById('locationDescription').textContent = description;
-    document.getElementById('locationImage').src = imageUrl;
 
     // Submit comment
     document.getElementById('submitComment').addEventListener('click', function() {
