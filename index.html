@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make Your Way - Exploración Criminal y Hacker de Sitios Abandonados</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      font-family: 'Arial', sans-serif;
+      background: repeating-linear-gradient(45deg, #1e1e1e, #1e1e1e 10px, #2b2b2b 10px, #2b2b2b 20px);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #2c2c2c;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+    .title {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 48px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+      color: #4CAF50;
+      animation: fadeIn 2s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    #map-container {
+      padding: 20px;
+      margin: 0 auto;
+    }
+    #map {
+      height: calc(100vh - 140px);
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s ease;
+    }
+    #map:hover {
+      transform: scale(1.02);
+    }
+    .add-marker-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .add-marker-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">Make Your Way</div>
+  <a href="formulario.html" class="add-marker-button"><i class="fas fa-map-marker-alt"></i> Añadir Ubicación</a>
+  <div class="container">
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+  
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script>
+    // Configuración de Firebase
+    var firebaseConfig = {
+      apiKey: "AIzaSyB8J9B2u29MLTAbYdwPc-WGV2pDHHn-RzA",
+      authDomain: "makeyourway1-14c03.firebaseapp.com",
+      projectId: "makeyourway1-14c03",
+      storageBucket: "makeyourway1-14c03.appspot.com",
+      messagingSenderId: "853227723290",
+      appId: "1:853227723290:web:862ffdc50d316fc6504fa3",
+      measurementId: "G-00PJNJ1400"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
+
+    // Inicializar mapa
+    var map = L.map('map').setView([40.7128, -74.0060], 12); // Nueva York como ejemplo
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var markerLayer = L.layerGroup().addTo(map);
+
+    // Código para cargar y mostrar los marcadores desde Firestore
+    function loadMarkers() {
+      db.collection('locations').get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          var marker = doc.data();
+          var markerObj = L.marker([marker.lat, marker.lng]).addTo(markerLayer)
+            .bindPopup(`<b>${marker.name}</b><br>${marker.description}`);
+          
+          markerObj.on('click', function() {
+            window.location.href = `detalle.html?name=${encodeURIComponent(marker.name)}&description=${encodeURIComponent(marker.description)}&image=${encodeURIComponent(marker.imageURL)}`;
+          });
+
+          markerObj.on('mouseover', function(e) {
+            this.openPopup();
+          });
+
+          markerObj.on('mouseout', function(e) {
+            this.closePopup();
+          });
+        });
+      }).catch((error) => {
+        console.error('Error loading markers: ', error);
+      });
+    }
+
+    loadMarkers();
+  </script>
+</body>
+</html>
