@@ -131,7 +131,7 @@
 
     var name = decodeURIComponent(getQueryParam('name'));
     var description = decodeURIComponent(getQueryParam('description'));
-    var imageURL = decodeURIComponent(getQueryParam('image'));
+    var imageURL = getQueryParam('image');  // No decodeURIComponent here
 
     document.getElementById('locationName').textContent = name;
     document.getElementById('locationDescription').textContent = description;
